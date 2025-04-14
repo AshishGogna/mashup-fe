@@ -30,6 +30,9 @@ const logToServer = async (level: 'info' | 'error', message: string, data?: any)
 
 export default function ShortsPage() {
   const [videos, setVideos] = useState<Video[]>(INITIAL_VIDEOS);
+  const [downloadedVideos, setDownloadedVideos] = useState<Record<string, string>>({});
+  const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
@@ -41,15 +44,41 @@ export default function ShortsPage() {
   const touchStartY = useRef(0);
   const touchStartTime = useRef(0);
 
+  const pauseAllVideosExcept = (currentVideoId: string) => {
+    Object.entries(videoRefs.current).forEach(([id, video]) => {
+      if (video)
+        if (id !== currentVideoId) {
+            video.pause();
+        } else {
+            video.play();
+        }
+    });
+  };
+
   const scrollToIndex = (index: number) => {
     const container = containerRef.current;
     if (container) {
       const targetScroll = index * window.innerHeight;
+      const currentVideo = videos[index];
+      console.log('Now playing video:', {
+        id: currentVideo.id,
+        sourceId: currentVideo.source_id,
+        url: currentVideo.url,
+        index: index,
+        isDownloaded: !!downloadedVideos[currentVideo.id],
+        isDownloading: !!isDownloading[currentVideo.id]
+      });
       logToServer('info', 'Scrolling to index', {
         index,
         targetScroll,
-        currentScroll: container.scrollTop
+        currentScroll: container.scrollTop,
+        videoId: currentVideo.id,
+        sourceId: currentVideo.source_id
       });
+      
+      // Pause all videos except the current one
+      pauseAllVideosExcept(currentVideo.id);
+      
       container.scrollTo({
         top: targetScroll,
         behavior: 'smooth'
@@ -200,6 +229,11 @@ export default function ShortsPage() {
             className="relative w-full h-[100dvh] snap-start flex items-center justify-center"
           >
             <video
+              ref={el => {
+                if (el) {
+                  videoRefs.current[video.id] = el;
+                }
+              }}
               className="w-full h-full object-cover"
               src={video.url}
               autoPlay
