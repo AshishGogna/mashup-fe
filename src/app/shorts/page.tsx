@@ -21,14 +21,11 @@ export default function ShortsPage() {
   const initialVideoId = searchParams.get('id');
   const category = searchParams.get('category');
   const [videos, setVideos] = useState<Video[]>([]);
-  const [prevTime, setPrevTime] = useState<number>(0);
-  const [nextTime, setNextTime] = useState<number>(0);
-  const [prevText, setPrevText] = useState<string>("");
-  const [nextText, setNextText] = useState<string>("");
   const [downloadedVideos, setDownloadedVideos] = useState<Record<string, string>>({});
   const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const sceneListRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const lastScrollTime = useRef(0);
   const currentIndex = useRef(0);
@@ -57,55 +54,6 @@ export default function ShortsPage() {
       return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
   };
-
-  // Add interval function
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Your function that runs every second
-      const currentVideo = videos[currentIndex.current];
-      if (currentVideo) {
-        const videoElement = videoRefs.current[currentVideo.id];
-        if (videoElement) {
-          console.log('Current video:', {
-            id: currentVideo.id,
-            index: currentIndex.current,
-            totalVideos: videos.length,
-            currentTime: Math.floor(videoElement.currentTime),
-            duration: Math.floor(videoElement.duration),
-            scenes: currentVideo.scenes
-          });
-
-          if (currentVideo.scenes) {
-            for (let i = currentVideo.scenes.length - 1; i >= 0; i--) {
-                var scene = currentVideo.scenes[i];
-                var end = scene.end ? scene.end : scene.start;
-                if (end == 0) {
-                    setPrevText("");
-                    setPrevTime(0);
-                    break;
-                }
-                if (videoElement.currentTime > end) {
-                    setPrevText("< " + scene.action + " at " + formatSceneTime(scene.start));
-                    setPrevTime(scene.start);
-                    break;
-                }
-            }
-            for (var scene of currentVideo.scenes) {
-                if (videoElement.currentTime < scene.start) {
-                    setNextText(scene.action + " at " + formatSceneTime(scene.start) + " >");
-                    setNextTime(scene.start);
-                    break;
-                }
-            }
-          }
-
-        }
-      }
-    }, 1000); // Run every 1000ms (1 second)
-
-    // Cleanup interval on component unmount
-    return () => clearInterval(interval);
-  }, [videos]); // Re-run effect if videos array changes
 
   const fetchVideos = async (more: boolean = false) => {
     const params = new URLSearchParams();
@@ -157,10 +105,6 @@ export default function ShortsPage() {
   };
 
   const pauseAllVideosExcept = (currentVideoId: string) => {
-    setPrevText("");
-    setPrevTime(0);
-    setNextText("");
-    setNextTime(0);
     Object.entries(videoRefs.current).forEach(([id, video]) => {
       if (video)
         if (id !== currentVideoId) {
@@ -220,6 +164,7 @@ export default function ShortsPage() {
     if (container) {
       // Handle wheel events (desktop)
       const handleWheel = (e: WheelEvent) => {
+        if (isInsideHorizontallyScrollable(e.target)) return;
         e.preventDefault();
         const now = Date.now();
         
@@ -247,8 +192,25 @@ export default function ShortsPage() {
         }
       };
 
+      const isInsideHorizontallyScrollable = (el: EventTarget | null): boolean => {
+        if (!(el instanceof HTMLElement)) return false;
+      
+        let current = el;
+        while (current && current !== containerRef.current) {
+          if (
+            current.classList.contains('horizontal-scroll') ||
+            current.scrollWidth > current.clientWidth
+          ) {
+            return true;
+          }
+          current = current.parentElement!;
+        }
+        return false;
+      };
+
       // Handle touch events (mobile)
       const handleTouchStart = (e: TouchEvent) => {
+        if (isInsideHorizontallyScrollable(e.target)) return;
         e.preventDefault();
         touchStartY.current = e.touches[0].clientY;
         touchStartTime.current = Date.now();
@@ -416,42 +378,56 @@ export default function ShortsPage() {
               playsInline
               preload="auto"
             />
-            {/* Navigation Buttons */}
-            <div className="absolute bottom-20 left-0 right-0 flex items-center justify-between px-4 z-20">
-              <button 
-                onClick={() => {
-                    const currentVideo = videos[currentIndex.current];
-                    if (currentVideo) {
-                        const videoElement = videoRefs.current[currentVideo.id];
-                        if (videoElement) {
-                            videoElement.currentTime = prevTime; 
-                        }
-                    }
+
+            {/* Scene List */}
+            <div 
+                  ref={sceneListRef}
+                className="absolute bottom-20 left-0 right-0 px-4 z-20"
+                style={{
+                  overflowX: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none'
                 }}
-                className="flex items-center rounded-full text-white transition-colors py-3"
               >
-                <span className="text-sm font-medium text-left underline">{prevText}</span>
-              </button>
-              <button 
-                onClick={() => {
-                    const currentVideo = videos[currentIndex.current];
-                    if (currentVideo) {
-                        const videoElement = videoRefs.current[currentVideo.id];
-                        if (videoElement) {
-                            videoElement.currentTime = nextTime; 
-                        }
-                    }
-                }}
-                className="flex items-center rounded-full text-white transition-colors py-3"
-              >
-                <span className="text-sm font-medium text-right underline">{nextText}</span>
-              </button>
+                <div 
+                  className="flex gap-6"
+                  style={{
+                    minWidth: 'max-content',
+                    padding: '8px 0'
+                  }}
+                >
+                  {video.scenes && video.scenes.map((scene, index) => {
+                    const isCurrentScene = currentTime >= scene.start && 
+                      (!video.scenes?.[index + 1] || currentTime < video.scenes[index + 1].start);
+                    
+                    return (
+                      <span 
+                        key={index}
+                        className={`text-xs whitespace-nowrap cursor-pointer flex-shrink-0 ${
+                          isCurrentScene ? 'text-red-500 font-medium' : 'text-white underline'
+                        }`}
+                        onClick={() => {
+                          const videoElement = videoRefs.current[video.id];
+                          if (videoElement) {
+                            videoElement.currentTime = scene.start;
+                          }
+                        }}
+                      >
+                        {scene.action} at {formatSceneTime(scene.start)}
+                      </span>
+                    );
+                  })}
+                </div>
             </div>
+
+
             {/* Custom Seekbar */}
             <div 
               className="absolute bottom-10 left-0 right-0 px-4 z-20"
               onClick={(e) => e.stopPropagation()}
             >
+              
               <div className="flex items-center gap-2">
                 <span className="text-white text-xs">{formatTime(currentTime)}</span>
                 <div className="flex-1 relative h-10">
@@ -483,6 +459,7 @@ export default function ShortsPage() {
                 <span className="text-white text-xs">{formatTime(duration)}</span>
               </div>
             </div>
+
             {/* <div className="absolute bottom-4 left-4 right-4 text-white z-10">
               <div className="flex flex-wrap gap-2 overflow-x-auto">
                 {video.tags?.map((tag, index) => (
