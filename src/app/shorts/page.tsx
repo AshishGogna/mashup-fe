@@ -184,16 +184,9 @@ export default function ShortsPage() {
           if (deltaY > 0 && currentIndex.current < videos.length - 1) {
             currentIndex.current++;
             scrollToIndex(currentIndex.current);
-            container.scrollTo({
-              top: currentIndex.current * window.innerHeight,
-              behavior: 'smooth'
-            });
           } else if (deltaY < 0 && currentIndex.current > 0) {
             currentIndex.current--;
-            container.scrollTo({
-              top: currentIndex.current * window.innerHeight,
-              behavior: 'smooth'
-            });
+            scrollToIndex(currentIndex.current);
           }
           lastSwipeTime.current = touchEndTime;
         }
