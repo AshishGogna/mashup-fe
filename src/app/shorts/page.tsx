@@ -11,12 +11,12 @@ interface Video {
 const INITIAL_VIDEOS: Video[] = [
   {
     id: '3',
-    url: 'https://media.redgifs.com/SpringgreenNoxiousCassowary-mobile.mp4',
+    url: 'http://192.168.18.96:8000/api/video?id=67fb907552aaac5977b10b5d',
     source_id: 'sample_video_3'
   },
   {
     id: '4',
-    url: 'https://media.redgifs.com/SpringgreenNoxiousCassowary-mobile.mp4',
+    url: 'http://192.168.18.96:8000/api/video?id=67fb907552aaac5977b10b5d',
     source_id: 'sample_video_3'
   },
 ];
@@ -207,6 +207,7 @@ export default function ShortsPage() {
               muted
               playsInline
               preload="auto"
+              controls
             />
             <div className="absolute bottom-4 left-4 text-white z-10">
               <p className="font-semibold">@{video.source_id}</p>
