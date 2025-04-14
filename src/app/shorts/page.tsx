@@ -195,6 +195,13 @@ export default function ShortsPage() {
       // Pause all videos except the current one
       pauseAllVideosExcept(currentVideo.id);
       
+      // Reset duration and current time for the new video
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        setDuration(videoElement.duration);
+        setCurrentTime(videoElement.currentTime);
+      }
+      
       container.scrollTo({
         top: targetScroll,
         behavior: 'smooth'
