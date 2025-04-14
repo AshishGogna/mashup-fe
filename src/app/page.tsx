@@ -2,6 +2,7 @@
 
 import { FaVideo, FaFilm, FaSearch, FaHome, FaBolt } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Tag {
   tag: string;
@@ -9,10 +10,18 @@ interface Tag {
   count: number;
 }
 
+interface Video {
+  _id: string;
+  url: string;
+}
+
 export default function HomePage() {
+  const router = useRouter();
   const [categories, setCategories] = useState<Tag[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
 
   useEffect(() => {
+    // Fetch categories
     fetch('http://192.168.18.96:8000/api/home/tags')
       .then(res => res.json())
       .then(data => {
@@ -21,6 +30,16 @@ export default function HomePage() {
         }
       })
       .catch(err => console.error('Error fetching categories:', err));
+
+    // Fetch videos
+    fetch('http://192.168.18.96:8000/api/home/scenes')
+      .then(res => res.json())
+      .then(data => {
+        if (data.videos) {
+          setVideos(data.videos);
+        }
+      })
+      .catch(err => console.error('Error fetching videos:', err));
   }, []);
 
   return (
@@ -51,7 +70,11 @@ export default function HomePage() {
                 {/* First Row */}
                 <div className="inline-flex gap-3">
                   {categories.slice(0, 10).map((category, index) => (
-                    <div key={index} className="w-[100px] h-[100px] rounded-lg overflow-hidden relative group">
+                    <div 
+                      key={index} 
+                      className="w-[100px] h-[100px] rounded-lg overflow-hidden relative group cursor-pointer"
+                      onClick={() => router.push(`/shorts?category=${encodeURIComponent(category.tag)}`)}
+                    >
                       <img
                         src={category.poster_url}
                         className="absolute inset-0 w-full h-full object-cover"
@@ -67,7 +90,11 @@ export default function HomePage() {
                 {/* Second Row */}
                 <div className="inline-flex gap-3">
                   {categories.slice(10, 20).map((category, index) => (
-                    <div key={index + 10} className="w-[100px] h-[100px] rounded-lg overflow-hidden relative group">
+                    <div 
+                      key={index + 10} 
+                      className="w-[100px] h-[100px] rounded-lg overflow-hidden relative group cursor-pointer"
+                      onClick={() => router.push(`/shorts?category=${encodeURIComponent(category.tag)}`)}
+                    >
                       <img
                         src={category.poster_url}
                         className="absolute inset-0 w-full h-full object-cover"
@@ -91,7 +118,10 @@ export default function HomePage() {
                 <h1 className="text-white text-xl font-bold">Scenes</h1>
                 <FaBolt className="text-xl text-white" />
               </div>
-              <button className="text-white hover:text-red-500 transition-colors text-sm">
+              <button 
+                onClick={() => router.push('/shorts')}
+                className="text-white hover:text-red-500 transition-colors text-sm"
+              >
                 {"See All >"}
               </button>
             </div>
@@ -101,10 +131,14 @@ export default function HomePage() {
           {/* Horizontal Scrollable Videos */}
           <div className="overflow-x-auto whitespace-nowrap pb-4 px-4">
             <div className="inline-flex gap-4">
-              {[...Array(10)].map((_, index) => (
-                <div key={index} className="w-[220px] h-[300px] rounded-lg overflow-hidden bg-gray-800 relative">
+              {videos.map((video) => (
+                <div 
+                  key={video._id} 
+                  className="w-[220px] h-[300px] rounded-lg overflow-hidden bg-gray-800 relative cursor-pointer"
+                  onClick={() => router.push(`/shorts?id=${video._id}`)}
+                >
                   <video
-                    src="http://192.168.18.96:8000/api/video?id=67fb907552aaac5977b10b5d"
+                    src={video.url}
                     className="absolute inset-0 w-full h-full object-cover"
                     playsInline
                     muted

@@ -1,27 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 interface Video {
   id: string;
   url: string;
   source_id: string;
+  tags: string[];
+  scenes?: { start: number; name: string }[];
 }
-
-const INITIAL_VIDEOS: Video[] = [
-  {
-    id: '3',
-    url: 'http://192.168.18.96:8000/api/video?id=67fb907552aaac5977b10b5d',
-    source_id: 'sample_video_3'
-  },
-  {
-    id: '4',
-    url: 'http://192.168.18.96:8000/api/video?id=67fb907552aaac5977b10b5d',
-    source_id: 'sample_video_3'
-  },
-];
-
-const MORE_VIDEOS: Video[] = [];
 
 // Add remote logging utility
 const logToServer = async (level: 'info' | 'error', message: string, data?: any) => {
@@ -29,11 +17,17 @@ const logToServer = async (level: 'info' | 'error', message: string, data?: any)
 };
 
 export default function ShortsPage() {
-  const [videos, setVideos] = useState<Video[]>(INITIAL_VIDEOS);
+  const searchParams = useSearchParams();
+  const initialVideoId = searchParams.get('id');
+  const category = searchParams.get('category');
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [prevTime, setPrevTime] = useState<number>(0);
+  const [nextTime, setNextTime] = useState<number>(0);
+  const [prevText, setPrevText] = useState<string>("");
+  const [nextText, setNextText] = useState<string>("");
   const [downloadedVideos, setDownloadedVideos] = useState<Record<string, string>>({});
   const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const lastScrollTime = useRef(0);
@@ -43,8 +37,130 @@ export default function ShortsPage() {
   const isScrolling = useRef(false);
   const touchStartY = useRef(0);
   const touchStartTime = useRef(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
+
+  useEffect(() => {
+    // Fetch videos from API
+    fetchVideos();
+  }, []);
+
+  const formatSceneTime = (time: number) => {
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
+    const seconds = Math.floor(time % 60);
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  };
+
+  // Add interval function
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Your function that runs every second
+      const currentVideo = videos[currentIndex.current];
+      if (currentVideo) {
+        const videoElement = videoRefs.current[currentVideo.id];
+        if (videoElement) {
+          console.log('Current video:', {
+            id: currentVideo.id,
+            index: currentIndex.current,
+            totalVideos: videos.length,
+            currentTime: Math.floor(videoElement.currentTime),
+            duration: Math.floor(videoElement.duration),
+            scenes: currentVideo.scenes
+          });
+
+          if (currentVideo.scenes) {
+            for (let i = currentVideo.scenes.length - 1; i >= 0; i--) {
+                var scene = currentVideo.scenes[i];
+                var end = scene.end ? scene.end : scene.start;
+                if (end == 0) {
+                    setPrevText("");
+                    setPrevTime(0);
+                    break;
+                }
+                if (videoElement.currentTime > end) {
+                    setPrevText("< " + scene.action + " at " + formatSceneTime(scene.start));
+                    setPrevTime(scene.start);
+                    break;
+                }
+            }
+            for (var scene of currentVideo.scenes) {
+                if (videoElement.currentTime < scene.start) {
+                    setNextText(scene.action + " at " + formatSceneTime(scene.start) + " >");
+                    setNextTime(scene.start);
+                    break;
+                }
+            }
+          }
+
+        }
+      }
+    }, 1000); // Run every 1000ms (1 second)
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, [videos]); // Re-run effect if videos array changes
+
+  const fetchVideos = async (more: boolean = false) => {
+    const params = new URLSearchParams();
+    
+    if (more) {
+      params.append('last_id', videos[videos.length - 1].id);
+      if (category) {
+        params.append('category', category);
+      }
+    } else {
+      if (initialVideoId) {
+        params.append('with_id', initialVideoId);
+      } else if (category) {
+        params.append('category', category);
+      }
+    }
+
+    const url = `http://192.168.18.96:8000/api/scenes${params.toString() ? `?${params.toString()}` : ''}`;
+    
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (data.videos) {
+          setVideos(prevVideos => {
+            // Create a map of existing video IDs for deduplication
+            const existingIds = new Set(prevVideos.map(v => v.id));
+            
+            // Filter out videos that are already in the list
+            const newVideos = data.videos
+              .filter((video: any) => !existingIds.has(video._id))
+              .map((video: any) => ({
+                id: video._id,
+                url: video.url,
+                source_id: video.source_id || 'unknown',
+                tags: video.tags || [],
+                scenes: video.scenes || []
+              }));
+            
+            console.log("New videos: ", newVideos);
+            // Append new videos to the existing list
+            return [...prevVideos, ...newVideos];
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching videos:', err);
+        logToServer('error', 'Failed to fetch videos', { error: err });
+      });
+  };
 
   const pauseAllVideosExcept = (currentVideoId: string) => {
+    setPrevText("");
+    setPrevTime(0);
+    setNextText("");
+    setNextTime(0);
     Object.entries(videoRefs.current).forEach(([id, video]) => {
       if (video)
         if (id !== currentVideoId) {
@@ -83,24 +199,16 @@ export default function ShortsPage() {
         top: targetScroll,
         behavior: 'smooth'
       });
+
+      console.log("Index: ", index, "/", videos.length);
+      if (index == videos.length - 3) {
+        console.log("Fetch more!");
+        fetchVideos(true);
+      }
     }
   };
 
   useEffect(() => {
-    // Handle infinite scroll
-    const loadMoreObserver = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setVideos(prev => [...prev, ...MORE_VIDEOS]);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      loadMoreObserver.observe(loadMoreRef.current);
-    }
-
     const container = containerRef.current;
     if (container) {
       // Handle wheel events (desktop)
@@ -203,12 +311,76 @@ export default function ShortsPage() {
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
         container.removeEventListener('touchend', handleTouchEnd);
-        if (loadMoreRef.current) {
-          loadMoreObserver.unobserve(loadMoreRef.current);
-        }
       };
     }
   }, [videos]);
+
+  // Add video progress tracking
+  useEffect(() => {
+    const currentVideo = videos[currentIndex.current];
+    if (currentVideo) {
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        const updateProgress = () => {
+          if (!isSeeking) {
+            setCurrentTime(videoElement.currentTime);
+          }
+        };
+        
+        const updateDuration = () => {
+          setDuration(videoElement.duration);
+        };
+
+        videoElement.addEventListener('timeupdate', updateProgress);
+        videoElement.addEventListener('loadedmetadata', updateDuration);
+        
+        return () => {
+          videoElement.removeEventListener('timeupdate', updateProgress);
+          videoElement.removeEventListener('loadedmetadata', updateDuration);
+        };
+      }
+    }
+  }, [videos, currentIndex.current, isSeeking]);
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
+    setCurrentTime(newTime);
+    const currentVideo = videos[currentIndex.current];
+    if (currentVideo) {
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        videoElement.currentTime = newTime;
+      }
+    }
+  };
+
+  const handleSeekStart = () => {
+    setIsSeeking(true);
+    const currentVideo = videos[currentIndex.current];
+    if (currentVideo) {
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        videoElement.pause();
+      }
+    }
+  };
+
+  const handleSeekEnd = () => {
+    setIsSeeking(false);
+    const currentVideo = videos[currentIndex.current];
+    if (currentVideo) {
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        videoElement.play();
+      }
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="fixed inset-0 flex justify-center">
@@ -220,6 +392,7 @@ export default function ShortsPage() {
           <div
             key={video.id}
             className="relative w-full h-[100dvh] snap-start flex items-center justify-center"
+            style={{ height: '100dvh' }}
           >
             <video
               ref={el => {
@@ -227,21 +400,96 @@ export default function ShortsPage() {
                   videoRefs.current[video.id] = el;
                 }
               }}
-              className="w-full h-full object-cover"
+              className="w-full max-h-full object-contain"
+              style={{ height: '100%', width: '100%' }}
               src={video.url}
               autoPlay
               loop
               muted
               playsInline
               preload="auto"
-              controls
             />
-            <div className="absolute bottom-4 left-4 text-white z-10">
-              <p className="font-semibold">@{video.source_id}</p>
+            {/* Navigation Buttons */}
+            <div className="absolute bottom-20 left-0 right-0 flex items-center justify-between px-4 z-20">
+              <button 
+                onClick={() => {
+                    const currentVideo = videos[currentIndex.current];
+                    if (currentVideo) {
+                        const videoElement = videoRefs.current[currentVideo.id];
+                        if (videoElement) {
+                            videoElement.currentTime = prevTime; 
+                        }
+                    }
+                }}
+                className="flex items-center rounded-full text-white transition-colors py-3"
+              >
+                <span className="text-sm font-medium text-left underline">{prevText}</span>
+              </button>
+              <button 
+                onClick={() => {
+                    const currentVideo = videos[currentIndex.current];
+                    if (currentVideo) {
+                        const videoElement = videoRefs.current[currentVideo.id];
+                        if (videoElement) {
+                            videoElement.currentTime = nextTime; 
+                        }
+                    }
+                }}
+                className="flex items-center rounded-full text-white transition-colors py-3"
+              >
+                <span className="text-sm font-medium text-right underline">{nextText}</span>
+              </button>
             </div>
+            {/* Custom Seekbar */}
+            <div 
+              className="absolute bottom-10 left-0 right-0 px-4 z-20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-white text-xs">{formatTime(currentTime)}</span>
+                <div className="flex-1 relative h-10">
+                  <div 
+                    className="absolute h-1 bg-gray-600 rounded-full w-full"
+                    style={{ top: '50%', transform: 'translateY(-50%)' }}
+                  />
+                  <div 
+                    className="absolute h-1 bg-red-500 rounded-full"
+                    style={{ 
+                      top: '50%', 
+                      transform: 'translateY(-50%)',
+                      width: `${(currentTime / duration) * 100}%` 
+                    }}
+                  />
+                  <input
+                    type="range"
+                    min={0}
+                    max={duration}
+                    value={currentTime}
+                    onChange={handleSeek}
+                    onMouseDown={handleSeekStart}
+                    onMouseUp={handleSeekEnd}
+                    onTouchStart={handleSeekStart}
+                    onTouchEnd={handleSeekEnd}
+                    className="absolute w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+                <span className="text-white text-xs">{formatTime(duration)}</span>
+              </div>
+            </div>
+            {/* <div className="absolute bottom-4 left-4 right-4 text-white z-10">
+              <div className="flex flex-wrap gap-2 overflow-x-auto">
+                {video.tags?.map((tag, index) => (
+                  <span 
+                    key={index}
+                    className="px-2 py-1 bg-black/50 rounded-full text-xs whitespace-nowrap border border-red-500"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div> */}
           </div>
         ))}
-        <div ref={loadMoreRef} className="h-20" />
       </div>
     </div>
   );
