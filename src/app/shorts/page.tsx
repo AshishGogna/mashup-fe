@@ -287,10 +287,14 @@ export default function ShortsPage() {
 
       // Handle touch events (mobile)
       const handleTouchStart = (e: TouchEvent) => {
-        // Check if touch is on seek bar or scene list
+        // Check if touch is on buttons, seek bar, or scene list
         const target = e.target as HTMLElement;
-        if (target.closest('.seek-bar') || target.closest('.scene-list')) {
-          return; // Allow default behavior for seek bar and scene list
+        if (
+          target.closest('button') || 
+          target.closest('.seek-bar') || 
+          target.closest('.scene-list')
+        ) {
+          return; // Allow default behavior for buttons, seek bar, and scene list
         }
         
         if (isInsideHorizontallyScrollable(e.target)) return;
@@ -304,10 +308,14 @@ export default function ShortsPage() {
       };
 
       const handleTouchMove = (e: TouchEvent) => {
-        // Check if touch is on seek bar or scene list
+        // Check if touch is on buttons, seek bar, or scene list
         const target = e.target as HTMLElement;
-        if (target.closest('.seek-bar') || target.closest('.scene-list')) {
-          return; // Allow default behavior for seek bar and scene list
+        if (
+          target.closest('button') || 
+          target.closest('.seek-bar') || 
+          target.closest('.scene-list')
+        ) {
+          return; // Allow default behavior for buttons, seek bar, and scene list
         }
         
         e.preventDefault();
@@ -321,10 +329,14 @@ export default function ShortsPage() {
       };
 
       const handleTouchEnd = (e: TouchEvent) => {
-        // Check if touch is on seek bar or scene list
+        // Check if touch is on buttons, seek bar, or scene list
         const target = e.target as HTMLElement;
-        if (target.closest('.seek-bar') || target.closest('.scene-list')) {
-          return; // Allow default behavior for seek bar and scene list
+        if (
+          target.closest('button') || 
+          target.closest('.seek-bar') || 
+          target.closest('.scene-list')
+        ) {
+          return; // Allow default behavior for buttons, seek bar, and scene list
         }
         
         e.preventDefault();
