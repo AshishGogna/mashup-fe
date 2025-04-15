@@ -250,6 +250,12 @@ export default function ShortsPage() {
 
       // Handle touch events (mobile)
       const handleTouchStart = (e: TouchEvent) => {
+        // Check if touch is on seek bar or scene list
+        const target = e.target as HTMLElement;
+        if (target.closest('.seek-bar') || target.closest('.scene-list')) {
+          return; // Allow default behavior for seek bar and scene list
+        }
+        
         if (isInsideHorizontallyScrollable(e.target)) return;
         e.preventDefault();
         touchStartY.current = e.touches[0].clientY;
@@ -261,6 +267,12 @@ export default function ShortsPage() {
       };
 
       const handleTouchMove = (e: TouchEvent) => {
+        // Check if touch is on seek bar or scene list
+        const target = e.target as HTMLElement;
+        if (target.closest('.seek-bar') || target.closest('.scene-list')) {
+          return; // Allow default behavior for seek bar and scene list
+        }
+        
         e.preventDefault();
         const currentY = e.touches[0].clientY;
         const deltaY = touchStartY.current - currentY;
@@ -272,6 +284,12 @@ export default function ShortsPage() {
       };
 
       const handleTouchEnd = (e: TouchEvent) => {
+        // Check if touch is on seek bar or scene list
+        const target = e.target as HTMLElement;
+        if (target.closest('.seek-bar') || target.closest('.scene-list')) {
+          return; // Allow default behavior for seek bar and scene list
+        }
+        
         e.preventDefault();
         const touchEndY = e.changedTouches[0].clientY;
         const touchEndTime = Date.now();
@@ -456,53 +474,51 @@ export default function ShortsPage() {
 
             {/* Scene List */}
             <div 
-                  ref={sceneListRef}
-                className="absolute bottom-20 left-0 right-0 px-4 z-20"
+              ref={sceneListRef}
+              className="absolute bottom-20 left-0 right-0 px-4 z-20 scene-list"
+              style={{
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}
+            >
+              <div 
+                className="flex gap-6"
                 style={{
-                  overflowX: 'auto',
-                  WebkitOverflowScrolling: 'touch',
-                  scrollbarWidth: 'none',
-                  msOverflowStyle: 'none'
+                  minWidth: 'max-content',
+                  padding: '8px 0'
                 }}
               >
-                <div 
-                  className="flex gap-6"
-                  style={{
-                    minWidth: 'max-content',
-                    padding: '8px 0'
-                  }}
-                >
-                  {video.scenes && video.scenes.map((scene, index) => {
-                    const isCurrentScene = currentTime >= scene.start && 
-                      (!video.scenes?.[index + 1] || currentTime < video.scenes[index + 1].start);
-                    
-                    return (
-                      <span 
-                        key={index}
-                        className={`text-xs whitespace-nowrap cursor-pointer flex-shrink-0 ${
-                          isCurrentScene ? 'text-red-500 font-medium' : 'text-white underline'
-                        }`}
-                        onClick={() => {
-                          const videoElement = videoRefs.current[video.id];
-                          if (videoElement) {
-                            videoElement.currentTime = scene.start;
-                          }
-                        }}
-                      >
-                        {scene.action} at {formatSceneTime(scene.start)}
-                      </span>
-                    );
-                  })}
-                </div>
+                {video.scenes && video.scenes.map((scene, index) => {
+                  const isCurrentScene = currentTime >= scene.start && 
+                    (!video.scenes?.[index + 1] || currentTime < video.scenes[index + 1].start);
+                  
+                  return (
+                    <span 
+                      key={index}
+                      className={`text-xs whitespace-nowrap cursor-pointer flex-shrink-0 ${
+                        isCurrentScene ? 'text-red-500 font-medium' : 'text-white underline'
+                      }`}
+                      onClick={() => {
+                        const videoElement = videoRefs.current[video.id];
+                        if (videoElement) {
+                          videoElement.currentTime = scene.start;
+                        }
+                      }}
+                    >
+                      {scene.action} at {formatSceneTime(scene.start)}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
-
 
             {/* Custom Seekbar */}
             <div 
-              className="absolute bottom-10 left-0 right-0 px-4 z-20"
+              className="absolute bottom-10 left-0 right-0 px-4 z-20 seek-bar"
               onClick={(e) => e.stopPropagation()}
             >
-              
               <div className="flex items-center gap-2">
                 <span className="text-white text-xs">{formatTime(currentTime)}</span>
                 <div className="flex-1 relative h-10">
