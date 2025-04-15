@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { FaSync } from 'react-icons/fa';
+import { FaSync, FaExternalLinkAlt } from 'react-icons/fa';
 
 interface Video {
   id: string;
@@ -124,7 +124,8 @@ export default function ShortsPage() {
               .map((video: any) => ({
                 id: video._id,
                 url: video.url,
-                source_id: video.source_id || 'unknown',
+                source: video.source,
+                source_url: video.source_url,
                 tags: video.tags || [],
                 scenes: video.scenes || []
               }));
@@ -496,6 +497,16 @@ export default function ShortsPage() {
               playsInline
               preload="auto"
             />
+
+            {/* Source Button */}
+            <div className="absolute top-20 right-4 z-20">
+              <button
+                className="text-white bg-black/50 px-3 py-1 rounded-full text-sm hover:bg-black/70 transition-colors flex items-center gap-2"
+                onClick={() => window.open(video.source_url, '_blank')}
+              >
+                {video.source} <FaExternalLinkAlt className="text-xs" />
+              </button>
+            </div>
 
             {/* Scene List */}
             <div 
