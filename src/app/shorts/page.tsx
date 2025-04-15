@@ -182,8 +182,11 @@ export default function ShortsPage() {
       // Reset duration and current time for the new video
       const videoElement = videoRefs.current[currentVideo.id];
       if (videoElement) {
+        // Reset seek bar data
         setDuration(videoElement.duration);
-        setCurrentTime(videoElement.currentTime);
+        setCurrentTime(0);
+        videoElement.currentTime = 0;
+        setIsSeeking(false);
       }
       
       container.scrollTo({
@@ -369,6 +372,28 @@ export default function ShortsPage() {
     }
   }, [videos, currentIndex.current, isSeeking]);
 
+  const handleSeekStart = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
+    setIsSeeking(true);
+    const currentVideo = videos[currentIndex.current];
+    if (currentVideo) {
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        videoElement.pause();
+      }
+    }
+  };
+
+  const handleSeekEnd = (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
+    setIsSeeking(false);
+    const currentVideo = videos[currentIndex.current];
+    if (currentVideo) {
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        videoElement.play();
+      }
+    }
+  };
+
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
@@ -381,24 +406,24 @@ export default function ShortsPage() {
     }
   };
 
-  const handleSeekStart = () => {
-    setIsSeeking(true);
+  // Add touch move handler for seek bar
+  const handleSeekTouchMove = (e: React.TouchEvent<HTMLInputElement>) => {
+    e.stopPropagation(); // Prevent the touch event from bubbling up
+    const target = e.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const touch = e.touches[0];
+    const percentage = (touch.clientX - rect.left) / rect.width;
+    const newTime = Math.max(0, Math.min(duration, percentage * duration));
+    
+    // Update both the input value and current time
+    target.value = newTime.toString();
+    setCurrentTime(newTime);
+    
     const currentVideo = videos[currentIndex.current];
     if (currentVideo) {
       const videoElement = videoRefs.current[currentVideo.id];
       if (videoElement) {
-        videoElement.pause();
-      }
-    }
-  };
-
-  const handleSeekEnd = () => {
-    setIsSeeking(false);
-    const currentVideo = videos[currentIndex.current];
-    if (currentVideo) {
-      const videoElement = videoRefs.current[currentVideo.id];
-      if (videoElement) {
-        videoElement.play();
+        videoElement.currentTime = newTime;
       }
     }
   };
@@ -475,7 +500,7 @@ export default function ShortsPage() {
             {/* Scene List */}
             <div 
               ref={sceneListRef}
-              className="absolute bottom-20 left-0 right-0 px-4 z-20 scene-list"
+              className="absolute bottom-30 left-0 right-0 px-4 z-20 scene-list"
               style={{
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',
@@ -521,7 +546,7 @@ export default function ShortsPage() {
             >
               <div className="flex items-center gap-2">
                 <span className="text-white text-xs">{formatTime(currentTime)}</span>
-                <div className="flex-1 relative h-10">
+                <div className="flex-1 relative h-20">
                   <div 
                     className="absolute h-1 bg-gray-600 rounded-full w-full"
                     style={{ top: '50%', transform: 'translateY(-50%)' }}
@@ -544,7 +569,9 @@ export default function ShortsPage() {
                     onMouseUp={handleSeekEnd}
                     onTouchStart={handleSeekStart}
                     onTouchEnd={handleSeekEnd}
-                    className="absolute w-full h-full opacity-0 cursor-pointer"
+                    onTouchMove={handleSeekTouchMove}
+                    className="absolute w-full h-full opacity-0 cursor-pointer touch-none"
+                    style={{ touchAction: 'none' }}
                   />
                 </div>
                 <span className="text-white text-xs">{formatTime(duration)}</span>
