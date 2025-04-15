@@ -3,6 +3,7 @@
 import { FaVideo, FaFilm, FaSearch, FaHome, FaBolt } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTypewriter } from '@/hooks/useTypewriter';
 
 interface Tag {
   tag: string;
@@ -15,10 +16,32 @@ interface Video {
   url: string;
 }
 
+const EXAMPLE_PROMPTS = [
+  "happy ending after massage",
+  "indian girl giving a blowjob",
+  "hentai",
+  "cum shot after sex",
+  "search for your fantasy...",
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Tag[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const placeholderText = useTypewriter(EXAMPLE_PROMPTS);
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push(`/shorts?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
   useEffect(() => {
     // Fetch categories
@@ -46,15 +69,29 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       {/* Search Bar */}
       <div className="flex justify-center bg-black">
-        <div className="w-full md:max-w-[414px] px-4 py-10">
+        <div className="w-full md:max-w-[414px] px-4 mt-10">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search videos..."
-              className="w-full bg-black/80 text-white px-4 py-2 pl-10 rounded-full border border-gray-700 focus:outline-none focus:border-red-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={placeholderText}
+              className="w-full bg-black/80 text-white px-4 py-2 pl-5 pr-12 rounded-full border border-gray-700 focus:outline-none focus:border-red-500 placeholder-gray-500"
             />
-            <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <button
+              onClick={handleSearch}
+              disabled={!searchQuery.trim()}
+              className={`absolute right-2 top-1/2 transform -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                searchQuery.trim()
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <FaSearch className="text-sm" />
+            </button>
           </div>
+          <p className="text-gray-400 opacity-50 text-xs text-center mt-2">AI powered search</p>
         </div>
       </div>
 
@@ -63,7 +100,7 @@ export default function HomePage() {
         <div className="w-full md:max-w-[414px] overflow-y-auto">
 
           {/* Categories Section */}
-          <div className="px-4 mb-4">
+          <div className="px-4 mt-10">
             <h2 className="text-white text-lg font-bold mb-3">Categories</h2>
             <div className="overflow-x-auto whitespace-nowrap">
               <div className="inline-flex flex-col gap-3">

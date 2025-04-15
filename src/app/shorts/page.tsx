@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { FaSync } from 'react-icons/fa';
 
 interface Video {
   id: string;
@@ -20,6 +22,7 @@ export default function ShortsPage() {
   const searchParams = useSearchParams();
   const initialVideoId = searchParams.get('id');
   const category = searchParams.get('category');
+  const search = searchParams.get('search');
   const [videos, setVideos] = useState<Video[]>([]);
   const [downloadedVideos, setDownloadedVideos] = useState<Record<string, string>>({});
   const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
@@ -37,6 +40,7 @@ export default function ShortsPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Fetch videos from API
@@ -55,6 +59,12 @@ export default function ShortsPage() {
     }
   };
 
+  const refreshVideos = () => {
+    setVideos([])
+    currentIndex.current = 0
+    fetchVideos()
+  }
+
   const fetchVideos = async (more: boolean = false) => {
     const params = new URLSearchParams();
     
@@ -62,12 +72,16 @@ export default function ShortsPage() {
       params.append('last_id', videos[videos.length - 1].id);
       if (category) {
         params.append('category', category);
+      } else if (search) {
+        params.append('search', search);
       }
     } else {
       if (initialVideoId) {
         params.append('with_id', initialVideoId);
       } else if (category) {
         params.append('category', category);
+      } else if (search) {
+        params.append('search', search);
       }
     }
 
@@ -351,11 +365,41 @@ export default function ShortsPage() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const backButtonText = () => {
+    if (category) {
+      return `← ${category}`;
+    } else if (search) {
+      return `← ${search}`;
+    } else {
+        return "← back"
+    }
+  };
+
   return (
     <div className="fixed inset-0 flex justify-center">
+      {/* Back Button */}
+      <div className="fixed top-4 left-1/2 -translate-x-[197px] z-[100]">
+        <button
+          onClick={() => router.back()}
+          className="text-white hover:text-red-500 transition-colors bg-black/50 px-3 py-1 rounded-full"
+        >
+          {backButtonText()}
+        </button>
+      </div>
+
+      {/* Refresh Button */}
+      <div className="fixed top-4 right-1/2 translate-x-[197px] z-[100]">
+        <button
+          onClick={() => refreshVideos()}
+          className="text-white hover:text-red-500 transition-colors bg-black/50 p-2 rounded-full"
+        >
+          <FaSync className="text-sm" />
+        </button>
+      </div>
+
       <div 
         ref={containerRef}
-        className="w-full md:max-w-[414px] h-[100dvh] overflow-y-scroll snap-y snap-mandatory bg-black"
+        className="w-full md:max-w-[414px] h-[100dvh] overflow-y-scroll snap-y snap-mandatory bg-black relative"
       >
         {videos.map((video) => (
           <div
