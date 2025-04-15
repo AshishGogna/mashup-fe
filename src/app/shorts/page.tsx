@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { FaSync, FaExternalLinkAlt } from 'react-icons/fa';
+import { toast, Toaster } from 'react-hot-toast';
 
 interface Video {
   id: string;
@@ -45,7 +46,7 @@ export default function ShortsPage() {
 
   useEffect(() => {
     // Fetch videos from API
-    fetchVideos();
+    onLandingFetch();
   }, []);
 
   const formatSceneTime = (time: number) => {
@@ -83,13 +84,30 @@ export default function ShortsPage() {
     }
   }, [videos, currentIndex.current]);
 
+    const onLandingFetch = async () => {
+        await fetchVideos();
+    // if (videos.length == 0) {
+    //     toast('that\'s it friend!', {
+    //         duration: 2000,
+    //         style: {
+    //           background: '#333',
+    //           color: '#fff',
+    //           borderRadius: '8px',
+    //           padding: '12px 20px',
+    //         },
+    //       });
+    // }
+    };
+
   const refreshVideos = () => {
+    console.log('REFRESHING VIDEOS');
     setVideos([])
     currentIndex.current = 0
     fetchVideos()
   }
 
   const fetchVideos = async (more: boolean = false) => {
+    console.log('FETCHING VIDEOS');
     const params = new URLSearchParams();
     if (more) {
       params.append('last_id', videos[videos.length - 1].id);
@@ -161,9 +179,10 @@ export default function ShortsPage() {
     if (container) {
       const targetScroll = index * window.innerHeight;
       const currentVideo = videos[index];
+      
       console.log('Now playing video:', {
         id: currentVideo.id,
-        sourceId: currentVideo.source_id,
+        source: currentVideo.source,
         url: currentVideo.url,
         index: index,
         isDownloaded: !!downloadedVideos[currentVideo.id],
@@ -232,6 +251,19 @@ export default function ShortsPage() {
               scrollToIndex(currentIndex.current);
             }
             lastSwipeTime.current = now;
+
+            if (currentIndex.current == videos.length - 1) {
+                toast('that\'s it friend!', {
+                  duration: 2000,
+                  style: {
+                    background: '#333',
+                    color: '#fff',
+                    borderRadius: '8px',
+                    padding: '12px 20px',
+                  },
+                });
+                return;
+              }          
           }
         }
       };
@@ -447,6 +479,8 @@ export default function ShortsPage() {
 
   return (
     <div className="fixed inset-0 flex justify-center">
+      <Toaster position="bottom-center" />
+      
       {/* Back Button */}
       <div className="fixed top-4 left-1/2 -translate-x-[197px] z-[100]">
         <button
