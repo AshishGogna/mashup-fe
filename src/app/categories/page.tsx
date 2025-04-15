@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
+import { BASE_API_URL } from '@/constants';
 
 interface Tag {
   tag: string;
@@ -44,7 +45,7 @@ export default function CategoriesPage() {
             params.append('search', searchQuery);
         }
         params.append('page', pageNum.toString());
-        const url = `http://192.168.18.96:8000/api/home/tags${params.toString() ? `?${params.toString()}` : ''}`;
+        const url = `${BASE_API_URL}/api/home/tags${params.toString() ? `?${params.toString()}` : ''}`;
 
       const response = await fetch(url);
       const data: ApiResponse = await response.json();

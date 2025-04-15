@@ -4,6 +4,7 @@ import { FaVideo, FaFilm, FaSearch, FaHome, FaBolt } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTypewriter } from '@/hooks/useTypewriter';
+import { BASE_API_URL } from '@/constants';
 
 interface Tag {
   tag: string;
@@ -45,7 +46,7 @@ export default function HomePage() {
 
   useEffect(() => {
     // Fetch categories
-    fetch('http://192.168.18.96:8000/api/home/tags')
+    fetch(`${BASE_API_URL}/api/home/tags`)
       .then(res => res.json())
       .then(data => {
         if (data.tags) {
@@ -55,7 +56,7 @@ export default function HomePage() {
       .catch(err => console.error('Error fetching categories:', err));
 
     // Fetch videos
-    fetch('http://192.168.18.96:8000/api/home/scenes')
+    fetch(`${BASE_API_URL}/api/home/scenes`)
       .then(res => res.json())
       .then(data => {
         if (data.videos) {

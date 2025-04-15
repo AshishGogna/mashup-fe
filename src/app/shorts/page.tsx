@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { FaSync, FaExternalLinkAlt, FaBars } from 'react-icons/fa';
 import { toast, Toaster } from 'react-hot-toast';
+import Head from 'next/head';
+import { BASE_API_URL } from '@/constants';
 
 interface Video {
   id: string;
@@ -20,7 +22,7 @@ const logToServer = async (level: 'info' | 'error', message: string, data?: any)
   console.log(`[${level}] ${message}`, data);
 };
 
-export default function ShortsPage() {
+function ShortsContent() {
   const searchParams = useSearchParams();
   const initialVideoId = searchParams.get('id');
   const category = searchParams.get('category');
@@ -129,7 +131,7 @@ export default function ShortsPage() {
     }
 
     setIsLoading(true);
-    const url = `http://192.168.18.96:8000/api/scenes${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `${BASE_API_URL}/api/scenes${params.toString() ? `?${params.toString()}` : ''}`;
     fetch(url)
       .then(res => res.json())
       .then(data => {
@@ -684,5 +686,18 @@ export default function ShortsPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function ShortsPage() {
+  return (
+    <>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </Head>
+      <Suspense fallback={<div>Loading...</div>}>
+        <ShortsContent />
+      </Suspense>
+    </>
   );
 } 
