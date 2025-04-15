@@ -40,6 +40,7 @@ export default function ShortsPage() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -59,6 +60,29 @@ export default function ShortsPage() {
     }
   };
 
+  // Add video loading state tracking
+  useEffect(() => {
+    const currentVideo = videos[currentIndex.current];
+    if (currentVideo) {
+      const videoElement = videoRefs.current[currentVideo.id];
+      if (videoElement) {
+        const handleLoadStart = () => setIsLoading(true);
+        const handleCanPlay = () => setIsLoading(false);
+        const handleError = () => setIsLoading(false);
+
+        videoElement.addEventListener('loadstart', handleLoadStart);
+        videoElement.addEventListener('canplay', handleCanPlay);
+        videoElement.addEventListener('error', handleError);
+
+        return () => {
+          videoElement.removeEventListener('loadstart', handleLoadStart);
+          videoElement.removeEventListener('canplay', handleCanPlay);
+          videoElement.removeEventListener('error', handleError);
+        };
+      }
+    }
+  }, [videos, currentIndex.current]);
+
   const refreshVideos = () => {
     setVideos([])
     currentIndex.current = 0
@@ -67,7 +91,6 @@ export default function ShortsPage() {
 
   const fetchVideos = async (more: boolean = false) => {
     const params = new URLSearchParams();
-    
     if (more) {
       params.append('last_id', videos[videos.length - 1].id);
       if (category) {
@@ -85,8 +108,8 @@ export default function ShortsPage() {
       }
     }
 
+    setIsLoading(true);
     const url = `http://192.168.18.96:8000/api/scenes${params.toString() ? `?${params.toString()}` : ''}`;
-    
     fetch(url)
       .then(res => res.json())
       .then(data => {
@@ -115,7 +138,10 @@ export default function ShortsPage() {
       .catch(err => {
         console.error('Error fetching videos:', err);
         logToServer('error', 'Failed to fetch videos', { error: err });
-      });
+      })
+      .finally(() => {
+        setIsLoading(false);
+    });
   };
 
   const pauseAllVideosExcept = (currentVideoId: string) => {
@@ -391,9 +417,14 @@ export default function ShortsPage() {
       <div className="fixed top-4 right-1/2 translate-x-[197px] z-[100]">
         <button
           onClick={() => refreshVideos()}
-          className="text-white hover:text-red-500 transition-colors bg-black/50 p-2 rounded-full"
+          className={`text-white transition-colors bg-black/50 p-2 rounded-full ${!isLoading ? 'hover:text-red-500' : ''}`}
+          disabled={isLoading}
         >
-          <FaSync className="text-sm" />
+          {isLoading ? (
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <FaSync className="text-sm" />
+          )}
         </button>
       </div>
 

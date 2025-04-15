@@ -91,7 +91,7 @@ export default function HomePage() {
               <FaSearch className="text-sm" />
             </button>
           </div>
-          <p className="text-gray-400 opacity-50 text-xs text-center mt-2">AI powered search</p>
+          <p className="text-gray-400 opacity-50 text-xs text-left mt-2">AI powered search</p>
         </div>
       </div>
 
@@ -101,8 +101,18 @@ export default function HomePage() {
 
           {/* Categories Section */}
           <div className="px-4 mt-10">
-            <h2 className="text-white text-lg font-bold mb-3">Categories</h2>
-            <div className="overflow-x-auto whitespace-nowrap">
+            <div className="flex items-center justify-between mt-10">
+              <div className="flex items-center gap-2">
+                <h1 className="text-white text-xl">tags</h1>
+              </div>
+              <button 
+                onClick={() => router.push('/categories')}
+                className="text-white hover:text-red-500 transition-colors text-xs"
+              >
+                {"see All >"}
+              </button>
+            </div>
+            <div className="overflow-x-auto whitespace-nowrap mt-3">
               <div className="inline-flex flex-col gap-3">
                 {/* First Row */}
                 <div className="inline-flex gap-3">
@@ -152,17 +162,17 @@ export default function HomePage() {
           <div className="p-4">
             <div className="flex items-center justify-between mt-10">
               <div className="flex items-center gap-2">
-                <h1 className="text-white text-xl font-bold">Scenes</h1>
+                <h1 className="text-white text-xl">clips</h1>
                 <FaBolt className="text-xl text-white" />
               </div>
               <button 
                 onClick={() => router.push('/shorts')}
-                className="text-white hover:text-red-500 transition-colors text-sm"
+                className="text-white hover:text-red-500 transition-colors text-xs"
               >
-                {"See All >"}
+                {"see All >"}
               </button>
             </div>
-            <p className="text-gray-300 opacity-80 text-sm">Watch only those scenes that you want to watch 👅</p>
+            <p className="text-gray-300 opacity-80 text-sm">pick and watch your favorite scenes 👅</p>
           </div>
 
           {/* Horizontal Scrollable Videos */}
