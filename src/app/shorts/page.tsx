@@ -9,9 +9,10 @@ import { toast, Toaster } from 'react-hot-toast';
 interface Video {
   id: string;
   url: string;
-  source_id: string;
+  source: string;
+  source_url: string;
   tags: string[];
-  scenes?: { start: number; name: string }[];
+  scenes?: { start: number; action: string }[];
 }
 
 // Add remote logging utility
@@ -194,7 +195,7 @@ export default function ShortsPage() {
         targetScroll,
         currentScroll: container.scrollTop,
         videoId: currentVideo.id,
-        sourceId: currentVideo.source_id
+        source: currentVideo.source
       });
       
       // Pause all videos except the current one
