@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { FaSync, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaSync, FaExternalLinkAlt, FaBars } from 'react-icons/fa';
 import { toast, Toaster } from 'react-hot-toast';
 
 interface Video {
@@ -42,6 +42,7 @@ export default function ShortsPage() {
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showTags, setShowTags] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -531,6 +532,37 @@ export default function ShortsPage() {
               playsInline
               preload="auto"
             />
+
+            {/* Hamburger Button */}
+            <div className="absolute top-20 left-4 z-20">
+              <button
+                className="text-white bg-black/50 p-2 rounded-full text-sm hover:bg-black/70 transition-colors"
+                onClick={() => setShowTags(!showTags)}
+              >
+                <FaBars className="text-sm" />
+              </button>
+            </div>
+
+            {/* Tags Grid */}
+            {showTags && (
+              <div className="absolute top-32 left-4 w-1/2 z-20">
+                <div className="flex flex-wrap gap-2">
+                  {video.tags?.map((tag, index) => (
+                    <button
+                      key={index}
+                      className="text-white bg-black/50 px-3 py-1 rounded-full text-xs text-center inline-flex items-center justify-center hover:bg-black/70 transition-colors"
+                      onClick={() => {
+                        const params = new URLSearchParams();
+                        params.set('category', tag);
+                        window.location.href = `/shorts?${params.toString()}`;
+                      }}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Source Button */}
             <div className="absolute top-20 right-4 z-20">
